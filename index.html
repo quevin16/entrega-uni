@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compra de Productos</title>
+    <style>
+        /* CSS Avanzado */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        p {
+            text-align: center;
+            font-size: 18px;
+        }
+        #product-list {
+            max-width: 700px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .product {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .product:last-child {
+            border-bottom: none;
+        }
+        .product label {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        input[type="checkbox"] {
+            accent-color: #28a745;
+            transform: scale(1.2);
+        }
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        #checkout-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 20px 0;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #checkout-button:hover {
+            background-color: #218838;
+        }
+        #receipt {
+            max-width: 700px;
+            margin: 30px auto;
+            background-color: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.5s ease;
+        }
+        #receipt.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #receipt h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        #receipt ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #receipt ul li {
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+            font-size: 16px;
+        }
+        #receipt ul li:last-child {
+            border-bottom: none;
+        }
+        #total {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: right;
+        }
+        .alert {
+            background-color: #ffcc00;
+            color: #856404;
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+            font-size: 16px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Compra de Productos</h1>
+    <p>Selecciona los productos que deseas comprar y la cantidad:</p>
+
+    <div id="product-list">
+        <!-- La lista de productos se generará aquí -->
+    </div>
+
+    <div id="alert" class="alert">El producto no está disponible. Haz una selección alternativa.</div>
+    <div id="success" class="success">¡Compra realizada con éxito!</div>
+
+    <button id="checkout-button">Finalizar Compra</button>
+
+    <div id="receipt">
+        <h2>Recibo de Compra</h2>
+        <ul id="receipt-list">
+            <!-- Los productos comprados se mostrarán aquí -->
+        </ul>
+        <p id="total">Total: $0.00</p>
+    </div>
+
+    <script>
+        // JavaScript Mejorado con selección de cantidad
+        const products = [
+            { name: 'Manzanas', price: 1.00, available: true },
+            { name: 'Pan', price: 0.50, available: false },
+            { name: 'Leche', price: 1.50, available: true },
+            { name: 'Huevos', price: 2.00, available: true },
+            { name: 'Arroz', price: 0.75, available: false },
+        ];
+
+        const productListDiv = document.getElementById('product-list');
+        const receiptDiv = document.getElementById('receipt');
+        const receiptList = document.getElementById('receipt-list');
+        const totalDisplay = document.getElementById('total');
+        const checkoutButton = document.getElementById('checkout-button');
+        const alertDiv = document.getElementById('alert');
+        const successDiv = document.getElementById('success');
+
+        let selectedProducts = [];
+
+        function displayProducts() {
+            products.forEach((product, index) => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = 'product-' + index;
+
+                const label = document.createElement('label');
+                label.htmlFor = 'product-' + index;
+                label.innerText = `${product.name} - $${product.price.toFixed(2)}`;
+
+                const quantityInput = document.createElement('input');
+                quantityInput.type = 'number';
+                quantityInput.id = 'quantity-' + index;
+                quantityInput.min = '1';
+                quantityInput.value = '1';
+                quantityInput.disabled = true; // Inicialmente desactivado
+
+                // Habilitar o deshabilitar el campo de cantidad según si el producto está seleccionado
+                checkbox.addEventListener('change', () => {
+                    quantityInput.disabled = !checkbox.checked;
+                });
+
+                productDiv.appendChild(checkbox);
+                productDiv.appendChild(label);
+                productDiv.appendChild(quantityInput);
+                productListDiv.appendChild(productDiv);
+            });
+        }
+
+        function showAlert(message) {
+            alertDiv.innerText = message;
+            alertDiv.style.display = 'block';
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function showSuccess(message) {
+            successDiv.innerText = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function checkout() {
+            selectedProducts = [];
+            const checkboxes = productListDiv.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach((checkbox, index) => {
+                if (checkbox.checked) {
+                    const product = products[index];
+                    const quantity = parseInt(document.getElementById('quantity-' + index).value);
+                    selectedProducts.push({ product, quantity });
+                }
+            });
+
+            if (selectedProducts.length === 0) {
+                showAlert('No has seleccionado ningún producto.');
+                return;
+            }
+
+            // Verificar disponibilidad y tomar decisiones
+            for (let i = 0; i < selectedProducts.length; i++) {
+                const { product, quantity } = selectedProducts[i];
+                if (!product.available) {
+                    let decision = confirm(`El producto "${product.name}" no está disponible. ¿Deseas reemplazarlo por otro?`);
+                    if (decision) {
+                        // Encontrar un producto de reemplazo disponible
+                        let replacement = products.find(p => p.available && !selectedProducts.includes(p));
+                        if (replacement) {
+                            selectedProducts[i] = { product: replacement, quantity };
+                            showAlert(`"${product.name}" ha sido reemplazado por "${replacement.name}".`);
+                        } else {
+                            showAlert('No hay productos disponibles para reemplazar.');
+                            selectedProducts.splice(i, 1);
+                            i--;
+                        }
+                    } else {
+                        selectedProducts.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
+
+            // Mostrar recibo
+            if (selectedProducts.length > 0) {
+                receiptList.innerHTML = '';
+                let total = 0;
+                selectedProducts.forEach(({ product, quantity }) => {
+                    const li = document.createElement('li');
+                    li.innerText = `${quantity} x ${product.name} - $${(product.price * quantity).toFixed(2)}`;
+                    receiptList.appendChild(li);
+                    total += product.price * quantity;
+                });
+                totalDisplay.innerText = `Total: $${total.toFixed(2)}`;
+                receiptDiv.classList.add('active');
+                showSuccess('¡Compra realizada con éxito!');
+            } else {
+                showAlert('No hay productos disponibles en tu selección.');
+            }
+        }
+
+        checkoutButton.addEventListener('click', checkout);
+
+        displayProducts();
+    </script>
+
+</body>
+</html>
